@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "outDir": "build",
+    "rootDir": "./src",
+    "sourceMap": false,
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./src/*", "build/*"]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/@types"
+    ],
+  },
+  "exclude": ["node_modules", "**/*.spec.js"]
+}
