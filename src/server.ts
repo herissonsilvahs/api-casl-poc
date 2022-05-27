@@ -1,7 +1,8 @@
-import express, { Router } from 'express'
+import express, { NextFunction, Request, Response, Router } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import { Ability, AbilityBuilder } from '@casl/ability'
+import { decode, sign, verify } from 'jsonwebtoken'
 
 interface iPermission {
   subject: string,
@@ -9,6 +10,7 @@ interface iPermission {
 }
 
 interface iUser {
+  id: number,
   name: string,
   permissions: Record<string, Array<string>>
 }
@@ -29,6 +31,7 @@ const defineAbility = (user: iUser) => {
   return build()
 }
 
+
 const router = Router()
 
 dotenv.config({
@@ -39,6 +42,14 @@ const PORT = process.env.PORT || 3000
 
 const app = express()
 
+app.use((req, res, next) => {
+  if (req.headers.authorization) {
+    const payload = verify(req.headers.authorization, process.env.JWT_SECRET || '')
+    req.sender = payload;
+  }
+  next()
+})
+
 app.use(cors())
 
 app.use(express.json())
@@ -46,6 +57,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 const someUser: iUser = {
+  id: 1,
   name: 'Seu Ze',
   permissions: {
     'order': ['create', 'edit', 'read'],
@@ -53,34 +65,36 @@ const someUser: iUser = {
   }
 }
 
-router.get('/order', (req, res) => {
-  const ability = defineAbility(someUser)
-  const hasAbility = ability.can('read', 'order')
-
-  if (hasAbility) {
-    return res.send("Have access!")
+const checkAbility = (action: string, subject: string) => {
+  return (req: Request, res: Response, next: NextFunction,) => {
+    const ability = defineAbility(req.sender)
+    const hasAbility = ability.can(action, subject)
+    if (hasAbility) return next()
+    return res.status(403).send('Access not allowed')
   }
+}
 
-  return res.send("Don't have access!")
+router.get('/token', (req, res) => {
+  const token: string = sign(someUser, process.env.JWT_SECRET || '', {
+    expiresIn: '24h',
+  });
+  return res.send(token)
 })
 
-router.get('/financial', (req, res) => {
-  const ability = defineAbility(someUser)
-  const hasAbility = ability.can('read', 'financial')
+router.get('/order', checkAbility('create', 'order'), (req, res) => {
+  return res.send('Have access!')
+})
 
-  if (hasAbility) {
-    return res.send("Have access!")
-  }
-
-  return res.send("Don't have access!")
+router.get('/financial', checkAbility('read', 'financial'), (req, res) => {
+  return res.send('Have access!')
 })
 
 router.get('/course/:id', (req, res) => {
-  res.send("Have access details!")
+  return res.send('Have access details!')
 })
 
 router.get('/course/:id/edit', (req, res) => {
-  res.send("Have access to edit!")
+  return res.send('Have access to edit!')
 })
 
 app.use(router)
