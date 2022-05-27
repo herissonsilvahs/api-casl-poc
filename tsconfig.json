@@ -15,8 +15,8 @@
       "@/*": ["./src/*", "build/*"]
     },
     "typeRoots": [
-      "./node_modules/@types",
-      "./src/@types"
+      "@types",
+      "./node_modules/@types"
     ],
   },
   "exclude": ["node_modules", "**/*.spec.js"]
